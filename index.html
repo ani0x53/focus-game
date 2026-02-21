@@ -125,7 +125,6 @@
     .sudoku  { --accent: #2563eb; }
     .sprint  { --accent: #ea580c; }
     .pairs   { --accent: #0d9488; }
-    .flutter { --accent: #34d399; }
 
     footer {
       margin-top: 40px;
@@ -178,13 +177,6 @@
     <span class="play">PLAY</span>
   </a>
 
-  <a class="card flutter" href="flutter/" style="grid-column:1/-1;max-width:calc(50% - 7px);margin:0 auto;">
-    <div class="icon">🦋</div>
-    <div class="name">FLUTTER</div>
-    <div class="desc">Flip tiles to reveal hidden butterflies — get 3 in a row to set them free</div>
-    <div class="stat" id="st-flutter">Never played</div>
-    <span class="play">PLAY</span>
-  </a>
 
 </div>
 
@@ -204,8 +196,6 @@
     if (sudoku) document.getElementById('st-sudoku').innerHTML = `Solved <strong>${sudoku.solved}</strong> &nbsp;·&nbsp; Best <strong>${sudoku.best || '—'}</strong>`;
     if (sprint) document.getElementById('st-sprint').innerHTML = `Best <strong>${sprint.best}</strong> correct &nbsp;·&nbsp; Played <strong>${sprint.played}×</strong>`;
     if (pairs)   document.getElementById('st-pairs').innerHTML   = `Best <strong>${pairs.best}s</strong> &nbsp;·&nbsp; Played <strong>${pairs.played}×</strong>`;
-    const flutter = JSON.parse(localStorage.getItem('focus-flutter-stats') || 'null');
-    if (flutter) document.getElementById('st-flutter').innerHTML = `Best <strong>${flutter.best}</strong> freed &nbsp;·&nbsp; Played <strong>${flutter.played}×</strong>`;
   }
   loadStats();
 </script>
