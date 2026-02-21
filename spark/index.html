@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPARK — Brain Gym</title>
+  <style>
+    :root {
+      --bg: #0f0f10; --surface: #1a1a1b; --text: #fff; --sub: #9ca3af;
+      --border: #2d2d2f; --accent: #f59e0b;
+      --green: #4ade80; --red: #f87171;
+      --c-red:#ef4444; --c-blue:#60a5fa; --c-green:#4ade80;
+      --c-yellow:#facc15; --c-purple:#c084fc; --c-orange:#fb923c;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body {
+      background:var(--bg); color:var(--text);
+      font-family:'Clear Sans','Helvetica Neue',Arial,sans-serif;
+      display:flex; flex-direction:column; align-items:center; min-height:100dvh;
+    }
+    header {
+      width:100%; max-width:460px; border-bottom:1px solid var(--border);
+      padding:10px 16px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .home-link { color:var(--sub); text-decoration:none; font-size:.78rem; font-weight:700; letter-spacing:.05em; }
+    .home-link:hover { color:var(--text); }
+    h1 { font-size:1.4rem; font-weight:900; letter-spacing:.18em; color:var(--accent); }
+
+    /* timer bar */
+    #timer-bar-wrap { width:100%; max-width:460px; height:5px; background:var(--border); }
+    #timer-bar { height:100%; background:var(--accent); width:100%; transition:width 1s linear, background .3s; }
+
+    /* top stats */
+    .top-bar {
+      display:flex; justify-content:space-around; width:100%; max-width:460px;
+      padding:12px 16px; border-bottom:1px solid var(--border);
+    }
+    .stat-box { text-align:center; }
+    .stat-label { font-size:.64rem; color:var(--sub); letter-spacing:.08em; text-transform:uppercase; }
+    .stat-value { font-size:1.6rem; font-weight:900; }
+    #score-val { color:var(--accent); }
+    #time-val  { color:var(--text); font-variant-numeric:tabular-nums; }
+    #best-val  { color:var(--sub); font-size:1.1rem; }
+
+    /* game area */
+    #game-area {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; width:100%; max-width:460px; padding:16px;
+      gap:20px;
+    }
+
+    /* ── Ready screen ── */
+    #ready-screen { text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .ready-icon  { font-size:3.5rem; }
+    .ready-title { font-size:1.1rem; font-weight:700; color:var(--sub); letter-spacing:.1em; }
+    .ready-rules { font-size:.82rem; color:var(--sub); line-height:1.7; max-width:300px; }
+    .ready-types {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; margin-top:4px;
+    }
+    .type-card {
+      background:var(--surface); border:1px solid var(--border); border-radius:8px;
+      padding:10px 12px; font-size:.75rem; color:var(--sub); line-height:1.5;
+    }
+    .type-card strong { color:var(--text); display:block; margin-bottom:2px; font-size:.8rem; }
+
+    /* ── Challenge card ── */
+    #challenge-area { width:100%; display:none; flex-direction:column; align-items:center; gap:18px; }
+
+    .challenge-tag {
+      font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--sub); border:1px solid var(--border); padding:3px 10px; border-radius:20px;
+    }
+
+    #challenge-display {
+      text-align:center; width:100%; min-height:100px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:12px;
+    }
+
+    .stroop-word {
+      font-size:clamp(2.4rem,12vw,3.6rem); font-weight:900; letter-spacing:.1em;
+      transition:opacity .15s;
+    }
+    .stroop-hint { font-size:.75rem; color:var(--sub); }
+
+    .color-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+    .color-btn {
+      padding:14px 0; border:none; border-radius:10px;
+      font-size:.85rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+      cursor:pointer; transition:transform .1s, filter .1s; color:#111;
+    }
+    .color-btn:active { transform:scale(.94); }
+
+    .math-eq { font-size:clamp(2rem,10vw,3rem); font-weight:900; text-align:center; }
+
+    .memory-digits {
+      display:flex; gap:12px; justify-content:center;
+    }
+    .mem-digit {
+      width:clamp(44px,12vw,60px); height:clamp(54px,14vw,72px);
+      background:var(--surface); border:2px solid var(--accent);
+      border-radius:10px; display:flex; align-items:center; justify-content:center;
+      font-size:clamp(1.5rem,7vw,2rem); font-weight:900; font-variant-numeric:tabular-nums;
+    }
+    .mem-digit.hidden {
+      border-color:var(--border); color:transparent;
+      background: repeating-linear-gradient(45deg,#1e1e1f,#1e1e1f 4px,#232324 4px,#232324 8px);
+    }
+    .memory-question { font-size:1rem; color:var(--sub); text-align:center; }
+    .memory-question strong { color:var(--text); }
+
+    .flash-bar-wrap { width:100%; height:4px; background:var(--border); border-radius:2px; }
+    .flash-bar { height:100%; background:var(--accent); border-radius:2px; transition:width .1s linear; }
+
+    .trivia-stmt {
+      font-size:clamp(1rem,4.5vw,1.3rem); font-weight:600; text-align:center;
+      line-height:1.5; padding:0 8px;
+    }
+    .tf-btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; }
+    .tf-btn {
+      padding:18px 0; border:2px solid var(--border); border-radius:10px;
+      background:var(--surface); color:var(--text);
+      font-size:1rem; font-weight:800; letter-spacing:.06em; cursor:pointer;
+      transition:all .15s;
+    }
+    .tf-btn:hover  { border-color:var(--accent); }
+    .tf-btn:active { transform:scale(.95); }
+
+    /* answer input */
+    .answer-row { display:flex; gap:10px; width:100%; max-width:280px; }
+    .answer-input {
+      flex:1; background:var(--surface); border:2px solid var(--border);
+      border-radius:8px; color:var(--text); font-size:1.4rem; font-weight:700;
+      text-align:center; padding:10px; outline:none; transition:border-color .15s;
+    }
+    .answer-input:focus { border-color:var(--accent); }
+    .go-btn {
+      padding:10px 18px; border:none; border-radius:8px;
+      background:var(--accent); color:#111; font-size:.9rem; font-weight:800;
+      cursor:pointer; transition:opacity .15s;
+    }
+    .go-btn:hover { opacity:.85; }
+
+    /* feedback flash */
+    #feedback {
+      font-size:1.3rem; font-weight:700; min-height:2rem; text-align:center;
+      transition:opacity .2s;
+    }
+    #feedback.correct { color:var(--green); }
+    #feedback.wrong   { color:var(--red); }
+
+    /* ── Game over ── */
+    #gameover {
+      display:none; flex-direction:column; align-items:center; gap:14px; text-align:center;
+    }
+    .go-grade { font-size:3.5rem; }
+    .go-title { font-size:1.5rem; font-weight:900; letter-spacing:.1em; color:var(--accent); }
+    .go-score { font-size:3rem; font-weight:900; }
+    .go-sub   { font-size:.82rem; color:var(--sub); }
+    .go-best  { font-size:.82rem; color:var(--sub); }
+    .go-best strong { color:var(--text); }
+    .go-breakdown {
+      display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;
+      font-size:.76rem; color:var(--sub); margin-top:4px;
+    }
+    .go-stat { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; }
+    .go-stat strong { color:var(--text); display:block; font-size:1rem; }
+
+    /* buttons */
+    .big-btn {
+      padding:13px 36px; border:none; border-radius:10px;
+      background:var(--accent); color:#111;
+      font-size:.95rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+      cursor:pointer; transition:opacity .15s;
+    }
+    .big-btn:hover { opacity:.85; }
+
+    /* correct/wrong pulse on challenge */
+    @keyframes pulse-green { 0%,100%{background:transparent} 50%{background:rgba(74,222,128,.12)} }
+    @keyframes pulse-red   { 0%,100%{background:transparent} 50%{background:rgba(248,113,113,.12)} }
+    #challenge-area.flash-correct { animation:pulse-green .35s ease; }
+    #challenge-area.flash-wrong   { animation:pulse-red   .35s ease; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="home-link" href="../">← Home</a>
+  <h1>SPARK</h1>
+  <div style="width:60px"></div>
+</header>
+
+<div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+
+<div class="top-bar">
+  <div class="stat-box"><div class="stat-label">Score</div><div class="stat-value" id="score-val">0</div></div>
+  <div class="stat-box"><div class="stat-label">Time</div><div class="stat-value" id="time-val">60</div></div>
+  <div class="stat-box"><div class="stat-label">Best</div><div class="stat-value" id="best-val">—</div></div>
+</div>
+
+<div id="game-area">
+
+  <div id="ready-screen">
+    <div class="ready-icon">⚡</div>
+    <div class="ready-title">BRAIN GYM</div>
+    <div class="ready-rules">4 types of challenges in 60 seconds.<br>Keep your brain sharp.</div>
+    <div class="ready-types">
+      <div class="type-card"><strong>🎨 Stroop</strong>Name the INK color, not the word</div>
+      <div class="type-card"><strong>🔢 Math</strong>Quick mental arithmetic</div>
+      <div class="type-card"><strong>🧠 Memory</strong>Recall the digit sequence</div>
+      <div class="type-card"><strong>⚡ True/False</strong>Fast logic &amp; facts</div>
+    </div>
+    <button class="big-btn" id="btn-start">Start</button>
+  </div>
+
+  <div id="challenge-area">
+    <div class="challenge-tag" id="challenge-tag">—</div>
+    <div id="challenge-display"></div>
+    <div id="feedback"></div>
+  </div>
+
+  <div id="gameover">
+    <div class="go-grade" id="go-grade">⚡</div>
+    <div class="go-title" id="go-title">SPARK</div>
+    <div class="go-score"><span id="go-score">0</span> <span style="font-size:1rem;color:var(--sub)">correct</span></div>
+    <div class="go-sub" id="go-sub"></div>
+    <div class="go-breakdown" id="go-breakdown"></div>
+    <div class="go-best" id="go-best"></div>
+    <button class="big-btn" id="btn-again">Play Again</button>
+  </div>
+
+</div>
+
+<script>
+// ─── Stats ────────────────────────────────────────────────────────────────────
+let stats = JSON.parse(localStorage.getItem('focus-spark-stats') || 'null') || { best:0, played:0 };
+function saveStats() {
+  localStorage.setItem('focus-spark-stats', JSON.stringify(stats));
+  document.getElementById('best-val').textContent = stats.best || '—';
+}
+saveStats();
+
+// ─── Colors (Stroop) ──────────────────────────────────────────────────────────
+const COLORS = [
+  { name:'RED',    hex:'#ef4444', textColor:'#fff' },
+  { name:'BLUE',   hex:'#60a5fa', textColor:'#fff' },
+  { name:'GREEN',  hex:'#4ade80', textColor:'#111' },
+  { name:'YELLOW', hex:'#facc15', textColor:'#111' },
+  { name:'PURPLE', hex:'#c084fc', textColor:'#fff' },
+  { name:'ORANGE', hex:'#fb923c', textColor:'#fff' },
+];
+
+// ─── Trivia ───────────────────────────────────────────────────────────────────
+const TRIVIA = [
+  {q:'A triangle has 3 sides',               a:true  },
+  {q:'The sun rises in the west',            a:false },
+  {q:'7 is a prime number',                  a:true  },
+  {q:'Water freezes at 100°C',              a:false },
+  {q:'A hexagon has 6 sides',               a:true  },
+  {q:'Sound travels faster than light',      a:false },
+  {q:'√81 = 9',                             a:true  },
+  {q:'Whales are fish',                      a:false },
+  {q:'A dozen = 12',                         a:true  },
+  {q:'3² + 4² = 5²',                        a:true  },
+  {q:'100 minutes = 2 hours',               a:false },
+  {q:'A year always has 365 days',          a:false },
+  {q:'The human body has 206 bones',        a:true  },
+  {q:'A rectangle is always a square',      a:false },
+  {q:'Sound travels faster in water',       a:true  },
+  {q:'9 × 9 = 81',                          a:true  },
+  {q:'A kilometer > a mile',                a:false },
+  {q:'Gold chemical symbol is Au',          a:true  },
+  {q:'An octopus has 8 arms',               a:true  },
+  {q:'15% of 200 = 30',                     a:true  },
+  {q:'Oxygen chemical symbol is O',         a:true  },
+  {q:'February always has 28 days',         a:false },
+  {q:'5² = 25',                             a:true  },
+  {q:'Plants make oxygen via photosynthesis',a:true },
+  {q:'A prime can be divided evenly by 3',  a:false },
+  {q:'A leap year has 366 days',            a:true  },
+  {q:'The Earth orbits the Moon',           a:false },
+  {q:'Ice is less dense than liquid water', a:true  },
+  {q:'Sharks are mammals',                  a:false },
+  {q:'Humans share 98% DNA with chimps',    a:true  },
+  {q:'A square is a rectangle',             a:true  },
+  {q:'Lightning is hotter than the sun\'s surface', a:true },
+  {q:'The brain uses about 20% of body energy', a:true },
+  {q:'Cold water boils faster than hot',    a:false },
+  {q:'Rome is the capital of Italy',        a:true  },
+  {q:'Venus is the hottest planet',         a:true  },
+  {q:'There are 7 days in a week',          a:true  },
+  {q:'A right angle is 90°',               a:true  },
+  {q:'All squares are rhombuses',           a:true  },
+  {q:'Bats are blind',                      a:false },
+  {q:'An atom is the smallest particle',    a:false },
+  {q:'The speed of light ≈ 300,000 km/s',  a:true  },
+  {q:'Humans have 5 senses (exactly)',      a:false },
+  {q:'A century = 100 years',               a:true  },
+  {q:'Elephants are afraid of mice',        a:false },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function shuffle(a) {
+  const b = [...a];
+  for (let i=b.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; }
+  return b;
+}
+function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function sample(arr, n) { return shuffle(arr).slice(0, n); }
+
+// ─── Challenge generators ─────────────────────────────────────────────────────
+function genStroop() {
+  const word = pick(COLORS);
+  const ink  = pick(COLORS.filter(c => c.name !== word.name));
+  const opts = shuffle([ink, ...sample(COLORS.filter(c=>c.name!==ink.name), 3)]);
+  return { type:'stroop', word:word.name, ink, opts, correct:ink.name };
+}
+
+function genMath(score) {
+  const lvl  = Math.min(3, Math.floor(score/5));
+  const ops  = lvl===0 ? ['+','-'] : lvl===1 ? ['+','-','×'] : ['+','-','×','÷'];
+  const op   = pick(ops);
+  let a, b, answer;
+  if (op==='+') {
+    const m = lvl<2?10:lvl<3?20:50;
+    a=Math.floor(Math.random()*m)+2; b=Math.floor(Math.random()*m)+2; answer=a+b;
+  } else if (op==='-') {
+    const m = lvl<2?10:30;
+    b=Math.floor(Math.random()*m)+1; a=b+Math.floor(Math.random()*m)+1; answer=a-b;
+  } else if (op==='×') {
+    const m = lvl<3?6:12;
+    a=Math.floor(Math.random()*m)+2; b=Math.floor(Math.random()*m)+2; answer=a*b;
+  } else {
+    b=Math.floor(Math.random()*9)+2; answer=Math.floor(Math.random()*12)+2; a=b*answer;
+  }
+  return { type:'math', text:`${a} ${op} ${b} = ?`, answer };
+}
+
+function genMemory() {
+  const len = 4;
+  const seq = Array.from({length:len}, ()=>Math.floor(Math.random()*9)+1);
+  const ask = Math.floor(Math.random()*len);
+  const labels = ['1st','2nd','3rd','4th'];
+  return { type:'memory', seq, ask, correct:seq[ask], label:labels[ask] };
+}
+
+function genTrivia(used) {
+  const pool = TRIVIA.filter((_,i)=>!used.has(i));
+  const idx  = pool.length ? Math.floor(Math.random()*pool.length) : Math.floor(Math.random()*TRIVIA.length);
+  const item = pool.length ? pool[idx] : pick(TRIVIA);
+  const realIdx = TRIVIA.indexOf(item);
+  used.add(realIdx);
+  return { type:'trivia', q:item.q, correct:item.a };
+}
+
+// ─── Game state ───────────────────────────────────────────────────────────────
+let score=0, timeLeft=60, running=false, gameoverShown=false;
+let timerHandle=null, flashHandle=null, feedbackHandle=null;
+let current=null, memoryPhase='flash', flashProgress=0, flashHandle2=null;
+let usedTrivia=new Set();
+let tally={stroop:0,math:0,memory:0,trivia:0};
+
+const scoreVal   = document.getElementById('score-val');
+const timeVal    = document.getElementById('time-val');
+const timerBar   = document.getElementById('timer-bar');
+const challengeTag  = document.getElementById('challenge-tag');
+const challengeDisp = document.getElementById('challenge-display');
+const feedbackEl    = document.getElementById('feedback');
+const challengeArea = document.getElementById('challenge-area');
+
+// ─── Render challenge ─────────────────────────────────────────────────────────
+const TAGS = { stroop:'🎨 Stroop — Name the ink color', math:'🔢 Math', memory:'🧠 Memory', trivia:'⚡ True or False' };
+
+function renderChallenge(ch) {
+  feedbackEl.textContent = ''; feedbackEl.className = '';
+  challengeTag.textContent = TAGS[ch.type] || ch.type;
+  challengeDisp.innerHTML = '';
+
+  if (ch.type === 'stroop') {
+    challengeDisp.innerHTML = `
+      <div class="stroop-hint">What colour is the <u>text</u>?</div>
+      <div class="stroop-word" style="color:${ch.ink.hex}">${ch.word}</div>
+      <div class="color-btns" id="color-btns"></div>`;
+    const wrap = document.getElementById('color-btns');
+    ch.opts.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'color-btn';
+      btn.textContent = c.name;
+      btn.style.background = c.hex;
+      btn.style.color = c.textColor;
+      btn.addEventListener('click', () => handleAnswer(c.name === ch.correct));
+      wrap.appendChild(btn);
+    });
+
+  } else if (ch.type === 'math') {
+    challengeDisp.innerHTML = `
+      <div class="math-eq">${ch.text}</div>
+      <div class="answer-row">
+        <input class="answer-input" id="ans-input" type="number" inputmode="numeric" autocomplete="off" placeholder="?">
+        <button class="go-btn" id="go-btn">Go</button>
+      </div>`;
+    const inp = document.getElementById('ans-input');
+    inp.focus();
+    inp.addEventListener('keydown', e => { if(e.key==='Enter') checkMath(); });
+    document.getElementById('go-btn').addEventListener('click', checkMath);
+
+  } else if (ch.type === 'memory') {
+    memoryPhase = 'flash';
+    renderMemoryFlash(ch);
+
+  } else if (ch.type === 'trivia') {
+    challengeDisp.innerHTML = `
+      <div class="trivia-stmt">${ch.q}</div>
+      <div class="tf-btns">
+        <button class="tf-btn" id="btn-true">✅ True</button>
+        <button class="tf-btn" id="btn-false">❌ False</button>
+      </div>`;
+    document.getElementById('btn-true').addEventListener('click',  () => handleAnswer(ch.correct === true));
+    document.getElementById('btn-false').addEventListener('click', () => handleAnswer(ch.correct === false));
+  }
+}
+
+function renderMemoryFlash(ch) {
+  const FLASH_MS = 2500;
+  challengeTag.textContent = '🧠 Memory — memorise the digits';
+  challengeDisp.innerHTML = `
+    <div class="memory-digits" id="mem-digits">
+      ${ch.seq.map(d=>`<div class="mem-digit">${d}</div>`).join('')}
+    </div>
+    <div class="flash-bar-wrap"><div class="flash-bar" id="flash-bar"></div></div>
+    <div style="font-size:.75rem;color:var(--sub)">Memorise fast…</div>`;
+
+  let elapsed = 0;
+  const interval = 50;
+  flashHandle2 = setInterval(() => {
+    elapsed += interval;
+    const pct = 100 - (elapsed / FLASH_MS * 100);
+    const fb = document.getElementById('flash-bar');
+    if (fb) fb.style.width = Math.max(0, pct) + '%';
+    if (elapsed >= FLASH_MS) {
+      clearInterval(flashHandle2);
+      renderMemoryRecall(ch);
+    }
+  }, interval);
+}
+
+function renderMemoryRecall(ch) {
+  memoryPhase = 'recall';
+  challengeTag.textContent = '🧠 Memory — recall';
+  challengeDisp.innerHTML = `
+    <div class="memory-digits">
+      ${ch.seq.map((_,i)=>`<div class="mem-digit ${i===ch.ask?'':'hidden'}">${i===ch.ask?'?':''}</div>`).join('')}
+    </div>
+    <div class="memory-question">What was the <strong>${ch.label}</strong> digit?</div>
+    <div class="answer-row">
+      <input class="answer-input" id="ans-input" type="number" inputmode="numeric" autocomplete="off" placeholder="?">
+      <button class="go-btn" id="go-btn">Go</button>
+    </div>`;
+  const inp = document.getElementById('ans-input');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') checkMemory(ch); });
+  document.getElementById('go-btn').addEventListener('click', () => checkMemory(ch));
+}
+
+function checkMath() {
+  const val = parseInt(document.getElementById('ans-input')?.value, 10);
+  if (isNaN(val)) return;
+  handleAnswer(val === current.answer);
+}
+function checkMemory(ch) {
+  const val = parseInt(document.getElementById('ans-input')?.value, 10);
+  if (isNaN(val)) return;
+  handleAnswer(val === ch.correct);
+}
+
+// ─── Answer handling ──────────────────────────────────────────────────────────
+function handleAnswer(correct) {
+  if (!running) return;
+  clearInterval(flashHandle2);
+
+  // disable all buttons
+  challengeDisp.querySelectorAll('button,input').forEach(el => el.disabled = true);
+
+  if (correct) {
+    score++;
+    tally[current.type]++;
+    scoreVal.textContent = score;
+    feedbackEl.textContent = '✓ Correct!'; feedbackEl.className = 'correct';
+    flashArea('correct');
+  } else {
+    const ans = current.type==='trivia' ? (current.correct ? 'True':'False') :
+                current.type==='stroop' ? current.correct : current.answer;
+    feedbackEl.textContent = `✗  ${ans}`; feedbackEl.className = 'wrong';
+    flashArea('wrong');
+  }
+
+  clearTimeout(feedbackHandle);
+  feedbackHandle = setTimeout(nextChallenge, correct ? 400 : 900);
+}
+
+function flashArea(type) {
+  challengeArea.classList.remove('flash-correct','flash-wrong');
+  void challengeArea.offsetWidth;
+  challengeArea.classList.add(type==='correct' ? 'flash-correct' : 'flash-wrong');
+}
+
+// ─── Next challenge ───────────────────────────────────────────────────────────
+const TYPES = ['stroop','stroop','math','math','memory','trivia','trivia'];
+function nextChallenge() {
+  if (!running) return;
+  const type = pick(TYPES);
+  if (type==='stroop')  current = genStroop();
+  else if (type==='math')   current = genMath(score);
+  else if (type==='memory') current = genMemory();
+  else                      current = genTrivia(usedTrivia);
+  renderChallenge(current);
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function startTimer() {
+  timerHandle = setInterval(() => {
+    timeLeft--;
+    timeVal.textContent = timeLeft;
+    timerBar.style.width = (timeLeft/60*100)+'%';
+    if (timeLeft <= 10) timerBar.style.background = '#ef4444';
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+// ─── Start / End ──────────────────────────────────────────────────────────────
+function startGame() {
+  score=0; timeLeft=60; running=true; gameoverShown=false;
+  tally={stroop:0,math:0,memory:0,trivia:0};
+  usedTrivia=new Set();
+
+  scoreVal.textContent='0'; timeVal.textContent='60';
+  timerBar.style.width='100%'; timerBar.style.background='var(--accent)';
+  feedbackEl.textContent=''; feedbackEl.className='';
+
+  document.getElementById('ready-screen').style.display='none';
+  document.getElementById('gameover').style.display='none';
+  challengeArea.style.display='flex';
+
+  nextChallenge();
+  startTimer();
+}
+
+function endGame() {
+  if (gameoverShown) return;
+  clearInterval(timerHandle); clearInterval(flashHandle2);
+  clearTimeout(feedbackHandle);
+  running=false; gameoverShown=true;
+
+  stats.played++;
+  const isNew = score > stats.best;
+  if (isNew) stats.best = score;
+  saveStats();
+
+  const grades = [
+    {min:20,g:'🌟🌟🌟',t:'GENIUS!',     s:'Your brain is on fire.'},
+    {min:14,g:'🌟🌟',  t:'SHARP!',       s:'Excellent mental agility.'},
+    {min:8, g:'🌟',    t:'GOOD WORK!',   s:'Keep exercising that brain.'},
+    {min:4, g:'⚡',    t:'WARMING UP',   s:'A little rusty — keep going.'},
+    {min:0, g:'🧠',    t:'BRAIN REST?',  s:'That\'s okay, try again!'},
+  ];
+  const grade = grades.find(g => score >= g.min) || grades[grades.length-1];
+
+  challengeArea.style.display='none';
+  const go = document.getElementById('gameover');
+  go.style.display='flex';
+  document.getElementById('go-grade').textContent = grade.g;
+  document.getElementById('go-title').textContent = grade.t;
+  document.getElementById('go-score').textContent = score;
+  document.getElementById('go-sub').textContent   = grade.s;
+  document.getElementById('go-best').innerHTML    = isNew
+    ? `<strong style="color:#4ade80">New best! 🎉</strong>`
+    : `Best: <strong>${stats.best}</strong>`;
+  document.getElementById('go-breakdown').innerHTML = [
+    ['🎨 Stroop', tally.stroop],['🔢 Math', tally.math],
+    ['🧠 Memory', tally.memory],['⚡ Trivia', tally.trivia],
+  ].map(([l,v])=>`<div class="go-stat"><strong>${v}</strong>${l}</div>`).join('');
+}
+
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-again').addEventListener('click', startGame);
+</script>
+</body>
+</html>

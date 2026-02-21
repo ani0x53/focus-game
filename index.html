@@ -124,7 +124,7 @@
     .lexis   { --accent: #7c3aed; }
     .sudoku  { --accent: #2563eb; }
     .sprint  { --accent: #ea580c; }
-    .pairs   { --accent: #0d9488; }
+    .spark   { --accent: #f59e0b; }
 
     footer {
       margin-top: 40px;
@@ -169,11 +169,11 @@
     <span class="play">PLAY</span>
   </a>
 
-  <a class="card pairs" href="pairs/">
-    <div class="icon">🃏</div>
-    <div class="name">PAIRS</div>
-    <div class="desc">Flip cards and match all emoji pairs from memory</div>
-    <div class="stat" id="st-pairs">Never played</div>
+  <a class="card spark" href="spark/">
+    <div class="icon">⚡</div>
+    <div class="name">SPARK</div>
+    <div class="desc">60-second brain gym — Stroop, math, memory flash & true/false</div>
+    <div class="stat" id="st-spark">Never played</div>
     <span class="play">PLAY</span>
   </a>
 
@@ -195,7 +195,8 @@
     if (lexis)  document.getElementById('st-lexis').innerHTML  = `Streak <strong>${lexis.streak}</strong> &nbsp;·&nbsp; Wins <strong>${lexis.won}</strong>`;
     if (sudoku) document.getElementById('st-sudoku').innerHTML = `Solved <strong>${sudoku.solved}</strong> &nbsp;·&nbsp; Best <strong>${sudoku.best || '—'}</strong>`;
     if (sprint) document.getElementById('st-sprint').innerHTML = `Best <strong>${sprint.best}</strong> correct &nbsp;·&nbsp; Played <strong>${sprint.played}×</strong>`;
-    if (pairs)   document.getElementById('st-pairs').innerHTML   = `Best <strong>${pairs.best}s</strong> &nbsp;·&nbsp; Played <strong>${pairs.played}×</strong>`;
+    const spark  = JSON.parse(localStorage.getItem('focus-spark-stats')  || 'null');
+    if (spark)   document.getElementById('st-spark').innerHTML   = `Best <strong>${spark.best}</strong> correct &nbsp;·&nbsp; Played <strong>${spark.played}×</strong>`;
   }
   loadStats();
 </script>
