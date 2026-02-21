@@ -524,7 +524,7 @@ function handleKey(k) {
 function submit() {
   if (curCol < 5) { toast('Need 5 letters!'); shakeRow(curRow); return; }
   const guess = grid[curRow].join('');
-  if (!WORD_SET.has(guess.toLowerCase())) { toast('Not in word list'); shakeRow(curRow); return; }
+  // Any real 5-letter word accepted — no rejection for being "not in list"
 
   const result = evaluate(guess);
   revealRow(curRow, result, guess);
