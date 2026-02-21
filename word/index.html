@@ -438,7 +438,36 @@ const WORDS = [
   "vexed","wacky","waltz","warty","waver","wimpy","windy","wispy","witty","wormy"
 ].filter(w => w.length === 5);
 
-// Extra valid guesses — these can be guessed but won't be picked as the target word
+// ── Dictionary validation via Free Dictionary API ────────────────────────────
+// Cache valid & invalid words in localStorage so lookups are instant after first check
+const _raw = JSON.parse(localStorage.getItem('lexis-dict-cache') || '{"ok":[],"no":[]}');
+const DICT_OK  = new Set([..._raw.ok,  ...WORDS.map(w => w.toLowerCase())]);
+const DICT_NO  = new Set(_raw.no);
+
+function _saveCache() {
+  localStorage.setItem('lexis-dict-cache', JSON.stringify({
+    ok: [...DICT_OK],
+    no: [...DICT_NO].slice(-500) // cap negatives to avoid unbounded growth
+  }));
+}
+
+async function isRealWord(word) {
+  const lc = word.toLowerCase();
+  if (DICT_OK.has(lc))  return true;
+  if (DICT_NO.has(lc))  return false;
+  try {
+    const res = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${lc}`,
+      { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined }
+    );
+    if (res.ok) { DICT_OK.add(lc); _saveCache(); return true;  }
+    else        { DICT_NO.add(lc); _saveCache(); return false; }
+  } catch {
+    return true; // if API unreachable (offline), allow the word
+  }
+}
+
+// placeholder so old EXTRA_VALID reference below compiles — no longer used
 const EXTRA_VALID = [
   // A
   "aback","abash","abate","abbot","abhor","abide","abode","abort","abyss","ached",
@@ -843,10 +872,19 @@ function handleKey(k) {
   }
 }
 
-function submit() {
+let _checking = false;
+async function submit() {
+  if (_checking) return;
   if (curCol < 5) { toast('Need 5 letters!'); shakeRow(curRow); return; }
   const guess = grid[curRow].join('');
-  if (!WORD_SET.has(guess.toLowerCase())) { toast('Not a valid word'); shakeRow(curRow); return; }
+
+  _checking = true;
+  toast('Checking…', 9999);
+  const valid = await isRealWord(guess);
+  _checking = false;
+  toastEl.classList.remove('show');
+
+  if (!valid) { toast('Not a real word'); shakeRow(curRow); return; }
 
   const result = evaluate(guess);
   revealRow(curRow, result, guess);
