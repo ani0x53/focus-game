@@ -3,673 +3,200 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FOCUS — Word Game</title>
+  <title>Focus Games</title>
   <style>
     :root {
-      --bg: #121213;
-      --surface: #1a1a1b;
+      --bg: #0f0f10;
+      --card: #1a1a1b;
       --text: #ffffff;
-      --subtext: #818384;
-      --border: #3a3a3c;
-      --border-filled: #565758;
-      --green: #538d4e;
-      --yellow: #b59f3b;
-      --gray: #3a3a3c;
-      --key-bg: #818384;
+      --sub: #9ca3af;
+      --border: #2d2d2f;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: 100dvh;
-      overflow: hidden;
-      user-select: none;
+      padding: 28px 16px 32px;
     }
 
-    /* ── Header ── */
     header {
-      width: 100%;
-      max-width: 500px;
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
-    .stats {
-      display: flex;
-      gap: 14px;
-      font-size: 0.72rem;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .stats span strong {
-      display: block;
-      color: var(--text);
-      font-size: 1.1rem;
       text-align: center;
+      margin-bottom: 36px;
     }
 
     h1 {
-      font-size: 1.5rem;
+      font-size: clamp(2.2rem, 10vw, 3.2rem);
       font-weight: 900;
-      letter-spacing: 0.18em;
-      flex-shrink: 0;
+      letter-spacing: 0.35em;
+      background: linear-gradient(135deg, #ffffff 0%, #6b7280 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    #btn-new {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 7px 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: pointer;
+    .tagline {
+      color: var(--sub);
+      font-size: 0.82rem;
+      margin-top: 8px;
       letter-spacing: 0.06em;
-      text-transform: uppercase;
-      transition: opacity 0.15s;
-      flex-shrink: 0;
-    }
-    #btn-new:hover { opacity: 0.8; }
-
-    /* ── Toast ── */
-    #toast {
-      position: fixed;
-      top: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--text);
-      color: var(--bg);
-      padding: 10px 22px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 0.9rem;
-      pointer-events: none;
-      z-index: 200;
-      opacity: 0;
-      transition: opacity 0.2s;
-      white-space: nowrap;
-    }
-    #toast.show { opacity: 1; }
-
-    /* ── Board ── */
-    #board-wrap {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      min-height: 0;
     }
 
-    #board {
+    .grid {
       display: grid;
-      grid-template-rows: repeat(6, 1fr);
-      gap: 5px;
-      width: min(300px, 88vw);
-      height: min(360px, 46vh);
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      width: 100%;
+      max-width: 460px;
     }
 
-    .row {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 5px;
-    }
-
-    .tile {
-      border: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(1.3rem, 6vw, 1.9rem);
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .tile.has-letter {
-      border-color: var(--border-filled);
-      animation: pop 0.08s ease;
-    }
-
-    .tile.revealed { animation: flip 0.45s ease forwards; }
-
-    .tile[data-state="correct"] { --rc: var(--green); }
-    .tile[data-state="present"] { --rc: var(--yellow); }
-    .tile[data-state="absent"]  { --rc: var(--gray); }
-
-    @keyframes pop {
-      0%,100% { transform: scale(1); }
-      50%      { transform: scale(1.12); }
-    }
-
-    @keyframes flip {
-      0%  { transform: rotateX(0);   background: transparent; border-color: var(--border-filled); color: var(--text); }
-      45% { transform: rotateX(90deg); background: transparent; }
-      55% { transform: rotateX(90deg); background: var(--rc); border-color: var(--rc); }
-      100%{ transform: rotateX(0);   background: var(--rc); border-color: var(--rc); }
-    }
-
-    .row.shake {
-      animation: shake 0.45s ease;
-    }
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      15%,55% { transform: translateX(-5px); }
-      35%,75% { transform: translateX(5px); }
-    }
-
-    .tile.win-bounce {
-      animation: bounce 0.5s ease forwards;
-    }
-    @keyframes bounce {
-      0%,100% { transform: translateY(0); }
-      40%     { transform: translateY(-22px); }
-      70%     { transform: translateY(-8px); }
-    }
-
-    /* ── Keyboard ── */
-    #keyboard {
-      padding: 6px 8px 12px;
-      width: min(500px, 100vw);
-      flex-shrink: 0;
-    }
-
-    .kb-row {
-      display: flex;
-      justify-content: center;
-      gap: 5px;
-      margin-bottom: 5px;
-    }
-
-    .key {
-      height: 52px;
-      min-width: 10px;
-      flex: 1;
-      max-width: 42px;
-      border-radius: 4px;
-      background: var(--key-bg);
-      color: var(--text);
-      font-weight: 700;
-      font-size: 0.78rem;
-      border: none;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: background 0.25s, color 0.25s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .key.wide { max-width: 64px; font-size: 0.68rem; }
-    .key:active { filter: brightness(0.8); }
-
-    .key[data-state="correct"] { background: var(--green); color: #fff; }
-    .key[data-state="present"] { background: var(--yellow); color: #fff; }
-    .key[data-state="absent"]  { background: var(--gray);   color: #fff; }
-
-    /* ── Instructions overlay ── */
-    #overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 300;
-    }
-    #overlay.hidden { display: none; }
-
-    .modal {
-      background: var(--surface);
+    .card {
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 28px 32px;
-      max-width: 340px;
-      width: 90%;
-      text-align: center;
+      border-radius: 14px;
+      padding: 20px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease, border-color 0.2s;
     }
-    .modal h2 { font-size: 1.2rem; letter-spacing: 0.1em; margin-bottom: 14px; }
-    .modal p  { font-size: 0.85rem; color: var(--subtext); line-height: 1.6; margin-bottom: 10px; }
 
-    .example-row {
-      display: flex; gap: 4px; justify-content: center;
-      margin: 8px 0;
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 14px 14px 0 0;
     }
-    .ex-tile {
-      width: 38px; height: 38px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 1rem;
-      border: 2px solid var(--border);
-      text-transform: uppercase;
-    }
-    .ex-tile.green  { background: var(--green);  border-color: var(--green);  }
-    .ex-tile.yellow { background: var(--yellow); border-color: var(--yellow); }
-    .ex-tile.gray   { background: var(--gray);   border-color: var(--gray);   }
 
-    #btn-start {
-      margin-top: 18px;
-      background: var(--green);
+    .card:hover  { transform: translateY(-3px); border-color: var(--accent); }
+    .card:active { transform: translateY(0); }
+
+    .icon { font-size: 1.9rem; line-height: 1; }
+
+    .name {
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+
+    .desc {
+      font-size: 0.73rem;
+      color: var(--sub);
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .stat {
+      font-size: 0.68rem;
+      color: var(--sub);
+      border-top: 1px solid var(--border);
+      padding-top: 9px;
+      margin-top: 2px;
+    }
+    .stat strong { color: var(--text); }
+
+    .play {
+      display: block;
+      background: var(--accent);
       color: #fff;
-      border: none;
-      border-radius: 5px;
-      padding: 10px 28px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      margin-top: 6px;
     }
-    #btn-start:hover { opacity: 0.85; }
+
+    .lexis  { --accent: #7c3aed; }
+    .sudoku { --accent: #2563eb; }
+    .sprint { --accent: #ea580c; }
+    .pairs  { --accent: #0d9488; }
+
+    footer {
+      margin-top: 40px;
+      color: var(--sub);
+      font-size: 0.7rem;
+      text-align: center;
+      letter-spacing: 0.04em;
+      line-height: 1.8;
+    }
   </style>
 </head>
 <body>
 
-<!-- Intro overlay -->
-<div id="overlay">
-  <div class="modal">
-    <h2>HOW TO PLAY</h2>
-    <p>Guess the 5-letter word in <strong>6 tries</strong>.</p>
-
-    <div class="example-row">
-      <div class="ex-tile green">W</div>
-      <div class="ex-tile">E</div>
-      <div class="ex-tile">A</div>
-      <div class="ex-tile">R</div>
-      <div class="ex-tile">Y</div>
-    </div>
-    <p><strong style="color:var(--green)">W</strong> is in the right spot.</p>
-
-    <div class="example-row">
-      <div class="ex-tile">P</div>
-      <div class="ex-tile yellow">I</div>
-      <div class="ex-tile">L</div>
-      <div class="ex-tile">L</div>
-      <div class="ex-tile">S</div>
-    </div>
-    <p><strong style="color:var(--yellow)">I</strong> is in the word, wrong spot.</p>
-
-    <div class="example-row">
-      <div class="ex-tile">V</div>
-      <div class="ex-tile">A</div>
-      <div class="ex-tile">G</div>
-      <div class="ex-tile gray">U</div>
-      <div class="ex-tile">E</div>
-    </div>
-    <p><strong style="color:var(--subtext)">U</strong> is not in the word.</p>
-
-    <button id="btn-start">Let's go!</button>
-  </div>
-</div>
-
-<div id="toast"></div>
-
 <header>
-  <div class="stats">
-    <span>Streak<strong id="s-streak">0</strong></span>
-    <span>Best<strong id="s-best">0</strong></span>
-    <span>Wins<strong id="s-wins">0</strong></span>
-  </div>
-  <h1>FOCUS</h1>
-  <button id="btn-new">New Game</button>
+  <h1>FOCUS<span style="-webkit-text-fill-color:#6b7280;color:#6b7280;font-size:0.5em;letter-spacing:0.15em;display:block;margin-top:-4px">GAMES</span></h1>
+  <p class="tagline">put the phone down &middot; pick a game</p>
 </header>
 
-<div id="board-wrap">
-  <div id="board"></div>
+<div class="grid">
+
+  <a class="card lexis" href="word/">
+    <div class="icon">🔤</div>
+    <div class="name">LEXIS</div>
+    <div class="desc">Guess the hidden 5-letter word in 6 tries</div>
+    <div class="stat" id="st-lexis">Never played</div>
+    <span class="play">PLAY</span>
+  </a>
+
+  <a class="card sudoku" href="sudoku/">
+    <div class="icon">🔢</div>
+    <div class="name">SUDOKU</div>
+    <div class="desc">Fill the 9×9 grid — every row, column & box gets 1–9</div>
+    <div class="stat" id="st-sudoku">Never played</div>
+    <span class="play">PLAY</span>
+  </a>
+
+  <a class="card sprint" href="sprint/">
+    <div class="icon">⚡</div>
+    <div class="name">SPRINT</div>
+    <div class="desc">Solve as many math problems as you can in 60 seconds</div>
+    <div class="stat" id="st-sprint">Never played</div>
+    <span class="play">PLAY</span>
+  </a>
+
+  <a class="card pairs" href="pairs/">
+    <div class="icon">🃏</div>
+    <div class="name">PAIRS</div>
+    <div class="desc">Flip cards and match all emoji pairs from memory</div>
+    <div class="stat" id="st-pairs">Never played</div>
+    <span class="play">PLAY</span>
+  </a>
+
 </div>
 
-<div id="keyboard">
-  <div class="kb-row" id="kr0"></div>
-  <div class="kb-row" id="kr1"></div>
-  <div class="kb-row" id="kr2"></div>
-</div>
+<footer>
+  no account &nbsp;·&nbsp; no ads &nbsp;·&nbsp; just focus<br>
+  <span style="opacity:0.5">save it to your home screen for quick access</span>
+</footer>
 
 <script>
-// ─── Word list ───────────────────────────────────────────────────────────────
-const WORDS = [
-  "about","above","abuse","actor","acute","admit","adopt","adult","after","again",
-  "agent","agree","ahead","aisle","alarm","album","alert","alien","align","alike",
-  "alive","alley","allow","alone","along","alter","angel","anger","angle","angry",
-  "annex","apart","apple","apply","apron","arena","argue","arise","armor","aroma",
-  "array","arrow","aside","atone","attic","audio","audit","avoid","awake","award",
-  "aware","awful","basic","basis","batch","beach","beast","began","begin","below",
-  "bench","bible","birth","black","blade","blame","bland","blank","blast","blaze",
-  "bleed","blend","bless","blind","block","blood","bloom","blown","blues","blunt",
-  "board","bonus","bound","brace","braid","brain","brand","brave","bread","break",
-  "breed","brick","bride","brief","bring","broad","broke","brook","broom","brown",
-  "brush","build","built","bunch","burnt","burst","buyer","cabin","cable","candy",
-  "cargo","carry","catch","cause","cease","chain","chair","chaos","chart","chase",
-  "cheap","check","cheek","cheer","chess","chest","chief","child","chill","choir",
-  "chose","civil","claim","clamp","clasp","class","clean","clear","clerk","click",
-  "cliff","cling","clock","clone","close","cloud","clown","coach","coast","cocoa",
-  "coral","comet","comic","comma","couch","could","count","court","cover","craft",
-  "crane","crash","crazy","cream","creek","crime","crisp","cross","crowd","crown",
-  "crush","cubic","curve","cycle","daily","dance","daunt","death","decay","delay",
-  "delta","dense","depot","depth","derby","devil","digit","dirty","disco","dodge",
-  "doubt","dough","draft","drain","drama","drank","drawn","dream","dress","drift",
-  "drink","drive","drone","drove","drown","drunk","dryer","dummy","dunce","dusky",
-  "dusty","dwarf","eagle","early","earth","eight","elite","empty","enemy","enjoy",
-  "enter","equal","error","essay","event","every","exact","exert","exist","extra",
-  "fable","false","fancy","fatal","fault","feast","fence","feral","fever","field",
-  "fiend","fiery","fifth","fifty","fight","final","first","fixed","flame","flare",
-  "flask","fleet","flesh","float","floor","flour","fluid","flush","focal","force",
-  "forge","found","frame","frank","fraud","fresh","front","frost","froze","fruit",
-  "fully","funny","fuzzy","ghost","giant","given","gland","glass","gleam","glide",
-  "gloom","glory","gloss","glove","gorge","grace","grade","grain","grand","grant",
-  "grasp","grass","grave","great","greed","green","greet","grief","grime","grind",
-  "groan","groom","group","grove","growl","grown","guess","guest","guide","guild",
-  "guile","guise","gusto","habit","happy","hardy","harsh","haven","heart","heavy",
-  "hence","hippo","holly","honey","honor","hotel","hound","human","humor","hurry",
-  "hyper","ideal","image","imply","index","indie","inner","input","intro","irony",
-  "ivory","joker","jolly","joust","judge","juice","juicy","jumbo","juror","kayak",
-  "knack","knave","kneel","knife","knock","known","label","lance","lapse","laser",
-  "later","laugh","layer","learn","legal","lemon","level","light","linen","local",
-  "logic","loose","lower","lucky","lunar","lusty","lyric","magic","major","maker",
-  "manor","maple","march","match","maxim","mayor","media","medal","mercy","merge",
-  "merit","metal","meter","minor","minus","model","money","moral","mouth","moved",
-  "movie","muddy","music","naive","nerve","never","night","noble","noise","north",
-  "noted","novel","nurse","nymph","occur","ocean","offer","often","olive","onset",
-  "opera","optic","order","other","outer","oxide","ozone","paint","panic","paper",
-  "party","patch","pause","peace","pearl","pedal","penny","phase","phone","photo",
-  "piece","pilot","pixel","pizza","place","plain","plane","plant","plate","plaza",
-  "plead","pluck","plumb","plume","point","polar","pouch","power","press","price",
-  "pride","prime","prize","probe","proof","prose","pulse","punch","pupil","purse",
-  "query","quest","queue","quick","quiet","quota","quote","radio","raise","rally",
-  "range","rapid","raven","razor","reach","realm","rebel","refer","reign","relax",
-  "relay","repay","reset","revel","rider","rifle","right","rigid","risky","rival",
-  "river","rogue","rough","round","route","royal","rugby","ruler","rural","sadly",
-  "saint","scale","scene","scone","scorn","score","scout","screw","seize","sense",
-  "serve","seven","shade","shake","shall","shame","shape","share","shark","sharp",
-  "shawl","sheep","sheer","sheet","shelf","shell","shift","shine","shirt","shock",
-  "shore","short","shout","shrug","sight","since","sixth","sixty","skill","skull",
-  "skunk","slate","sleek","sleep","sleet","slept","slice","slide","sling","slope",
-  "smart","smell","smile","smoke","snack","snake","snare","solar","solid","solve",
-  "sonic","sorry","south","spare","spark","spawn","speak","spear","spell","spend",
-  "spice","spill","spine","spite","split","spoke","spoon","spore","sport","spout",
-  "spray","squad","stack","staff","stage","stain","stale","stalk","stall","stamp",
-  "stand","stare","stark","start","state","steal","steam","steel","steep","steer",
-  "stern","stick","still","sting","stock","stoic","stomp","stone","stood","store",
-  "stork","storm","story","stout","stove","strap","straw","stray","strip","strut",
-  "stuck","study","stuff","style","sugar","suite","super","surge","swamp","swear",
-  "sweep","sweet","swept","swift","swing","swoop","sword","table","taken","taunt",
-  "taste","tease","teeth","tenor","tense","tenth","tepid","terms","theme","thick",
-  "thing","think","third","thorn","those","three","threw","throw","thumb","tiger",
-  "tight","timer","tired","title","toast","today","token","tonal","topaz","topic",
-  "total","touch","tough","tower","toxic","trade","trail","train","trait","tramp",
-  "trash","trawl","trend","tried","troop","trove","truce","truck","truly","tryst",
-  "tumor","tuner","ultra","uncut","under","unify","union","unite","unity","until",
-  "upper","urban","usage","usual","utter","vague","valid","valor","valve","vapor",
-  "vault","venue","verse","vigor","viral","virus","visit","visor","vista","vital",
-  "vivid","vocal","voice","voter","waive","watch","water","weary","weave","wedge",
-  "weird","whale","wheat","wheel","where","which","while","white","whole","whose",
-  "wield","witch","world","worry","worse","worst","worth","would","wound","woven",
-  "wrath","wreak","wreck","wring","write","wrong","yacht","young","youth","zebra",
-  "zoned","bloke","brash","chant","chasm","cleft","crimp","croak","delve","drape",
-  "dread","drool","epoch","evoke","expel","fetid","fleck","flint","fluff","foray",
-  "froth","fugue","gauze","glint","graft","gripe","grout","gruff","haste","heist",
-  "helix","hippy","hoary","hoist","horde","hunky","inept","infer","infix","ingot",
-  "inlay","jumpy","kinky","knelt","lathe","leach","leafy","leapt","liner","lingo",
-  "listy","lithe","livid","llama","lodge","lofty","logic","lumpy","lusty","mange",
-  "melee","mercy","mirth","moist","moldy","moody","moose","moped","morph","mossy",
-  "moult","mount","muddy","murky","musty","muted","naval","nervy","ninon","nitty",
-  "nomad","nonce","notch","nudge","nutty","nixed","opium","ovoid","paced","paddy",
-  "panda","pansy","patsy","paved","peach","pearl","penal","petal","petty","phial",
-  "piano","pinch","pitty","pixie","plaid","plait","pluck","plunk","poach","poker",
-  "poppy","porch","porky","proxy","prude","prune","puffy","pygmy","quirk","rabbi",
-  "rabid","rainy","ratty","rawly","reedy","refit","retch","ripen","risen","rocky",
-  "roman","roomy","roost","ruddy","rusty","sadly","salve","sandy","sassy","sated",
-  "savvy","scald","scalp","scaly","scamp","scant","scary","scoff","scold","scoop",
-  "scrub","seedy","serum","shady","shale","shank","sheaf","sheik","shire","showy",
-  "shred","shrub","shuck","sinew","siren","sissy","sixte","skewy","skimp","skirm",
-  "skoal","slang","slash","slate","sleek","slime","slimy","sloth","slurp","slyly",
-  "smear","smirk","smite","smock","smoggy","snaky","sniff","snore","snort","snout",
-  "soggy","sooty","soppy","sorry","spank","spawn","speck","spiel","spiky","spiny",
-  "splay","spoof","spook","spume","squab","squat","squid","stack","staid","stale",
-  "stead","steed","stein","stomp","stoop","strep","strop","strum","spurn","suave",
-  "sudsy","sulky","sunny","surly","swath","swill","swine","swirl","swoon","tabby",
-  "taboo","tacky","tapir","tardy","tawny","tepid","testy","thane","theft","threw",
-  "throe","tidal","tilth","tipsy","titan","toadstool","toddy","token","torso","toted",
-  "towel","toxic","troth","trout","trove","trawl","tryst","tubby","tulip","tunic",
-  "turbo","tutor","tying","udder","ulcer","ulnar","undue","unfit","unwed","unwrap",
-  "upend","upset","usurp","vaunt","verge","vetch","vexed","vying","wacky","waltz",
-  "warty","waver","wimpy","windy","wispy","witty","wooly","wormy","wrath","wroth"
-].filter(w => w.length === 5);
+  function loadStats() {
+    const lexis  = JSON.parse(localStorage.getItem('focus-v1-stats')     || 'null');
+    const sudoku = JSON.parse(localStorage.getItem('focus-sudoku-stats') || 'null');
+    const sprint = JSON.parse(localStorage.getItem('focus-sprint-stats') || 'null');
+    const pairs  = JSON.parse(localStorage.getItem('focus-pairs-stats')  || 'null');
 
-const WORD_SET = new Set(WORDS);
-
-// ─── State ───────────────────────────────────────────────────────────────────
-let target = '';
-let grid   = [];       // grid[row][col] = letter
-let curRow = 0;
-let curCol = 0;
-let over   = false;
-let keySt  = {};       // letter -> state
-
-let stats = JSON.parse(localStorage.getItem('focus-v1-stats') || 'null') || {
-  played: 0, won: 0, streak: 0, best: 0
-};
-
-// ─── DOM refs ─────────────────────────────────────────────────────────────────
-const boardEl = document.getElementById('board');
-const toastEl = document.getElementById('toast');
-let toastTimer = null;
-
-// ─── Toast ───────────────────────────────────────────────────────────────────
-function toast(msg, ms = 1600) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
-}
-
-// ─── Build board ─────────────────────────────────────────────────────────────
-function buildBoard() {
-  boardEl.innerHTML = '';
-  grid = Array.from({length:6}, () => Array(5).fill(''));
-  for (let r = 0; r < 6; r++) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.id = `r${r}`;
-    for (let c = 0; c < 5; c++) {
-      const t = document.createElement('div');
-      t.className = 'tile';
-      t.id = `t${r}${c}`;
-      row.appendChild(t);
-    }
-    boardEl.appendChild(row);
+    if (lexis)  document.getElementById('st-lexis').innerHTML  = `Streak <strong>${lexis.streak}</strong> &nbsp;·&nbsp; Wins <strong>${lexis.won}</strong>`;
+    if (sudoku) document.getElementById('st-sudoku').innerHTML = `Solved <strong>${sudoku.solved}</strong> &nbsp;·&nbsp; Best <strong>${sudoku.best || '—'}</strong>`;
+    if (sprint) document.getElementById('st-sprint').innerHTML = `Best <strong>${sprint.best}</strong> correct &nbsp;·&nbsp; Played <strong>${sprint.played}×</strong>`;
+    if (pairs)  document.getElementById('st-pairs').innerHTML  = `Best <strong>${pairs.best}s</strong> &nbsp;·&nbsp; Played <strong>${pairs.played}×</strong>`;
   }
-}
-
-// ─── Build keyboard ──────────────────────────────────────────────────────────
-const KB_ROWS = [
-  ['q','w','e','r','t','y','u','i','o','p'],
-  ['a','s','d','f','g','h','j','k','l'],
-  ['Enter','z','x','c','v','b','n','m','⌫']
-];
-
-function buildKeyboard() {
-  KB_ROWS.forEach((row, i) => {
-    const el = document.getElementById(`kr${i}`);
-    el.innerHTML = '';
-    row.forEach(k => {
-      const btn = document.createElement('button');
-      btn.className = 'key' + (k.length > 1 ? ' wide' : '');
-      btn.textContent = k;
-      btn.dataset.k = k;
-      btn.addEventListener('click', () => handleKey(k));
-      el.appendChild(btn);
-    });
-  });
-}
-
-// ─── New game ────────────────────────────────────────────────────────────────
-function newGame() {
-  target = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
-  curRow = 0; curCol = 0; over = false; keySt = {};
-  buildBoard();
-  buildKeyboard();
-  updateStats();
-}
-
-// ─── Stats display ───────────────────────────────────────────────────────────
-function updateStats() {
-  document.getElementById('s-streak').textContent = stats.streak;
-  document.getElementById('s-best').textContent   = stats.best;
-  document.getElementById('s-wins').textContent   = stats.won;
-}
-
-// ─── Input handler ───────────────────────────────────────────────────────────
-function handleKey(k) {
-  if (over) return;
-  if (k === '⌫' || k === 'Backspace') {
-    if (curCol > 0) {
-      curCol--;
-      grid[curRow][curCol] = '';
-      const t = document.getElementById(`t${curRow}${curCol}`);
-      t.textContent = '';
-      t.classList.remove('has-letter');
-    }
-  } else if (k === 'Enter') {
-    submit();
-  } else if (/^[a-zA-Z]$/.test(k) && curCol < 5) {
-    const letter = k.toUpperCase();
-    grid[curRow][curCol] = letter;
-    const t = document.getElementById(`t${curRow}${curCol}`);
-    t.textContent = letter;
-    t.classList.add('has-letter');
-    curCol++;
-  }
-}
-
-// ─── Submit guess ────────────────────────────────────────────────────────────
-function submit() {
-  if (curCol < 5) {
-    toast('Need 5 letters!');
-    shakeRow(curRow);
-    return;
-  }
-  const guess = grid[curRow].join('');
-  if (!WORD_SET.has(guess.toLowerCase())) {
-    toast('Not in word list');
-    shakeRow(curRow);
-    return;
-  }
-
-  const result = evaluate(guess);
-  revealRow(curRow, result, guess);
-
-  const won = result.every(s => s === 'correct');
-  const row = curRow;
-  curRow++;
-  curCol = 0;
-
-  const delay = 5 * 320 + 100;
-  setTimeout(() => {
-    if (won) {
-      const praise = ['Genius!','Magnificent!','Impressive!','Splendid!','Great!','Phew!'];
-      toast(praise[row] || 'Nice!', 2200);
-      bounceRow(row);
-      over = true;
-      stats.played++; stats.won++; stats.streak++;
-      stats.best = Math.max(stats.best, stats.streak);
-    } else if (curRow === 6) {
-      toast(target, 3000);
-      over = true;
-      stats.played++; stats.streak = 0;
-    }
-    if (over) {
-      localStorage.setItem('focus-v1-stats', JSON.stringify(stats));
-      updateStats();
-    }
-  }, delay);
-}
-
-// ─── Evaluate ────────────────────────────────────────────────────────────────
-function evaluate(guess) {
-  const result = Array(5).fill('absent');
-  const tArr   = target.split('');
-  const gArr   = guess.split('');
-
-  // correct pass
-  for (let i = 0; i < 5; i++) {
-    if (gArr[i] === tArr[i]) {
-      result[i] = 'correct';
-      tArr[i] = null;
-      gArr[i] = null;
-    }
-  }
-  // present pass
-  for (let i = 0; i < 5; i++) {
-    if (gArr[i] !== null) {
-      const j = tArr.indexOf(gArr[i]);
-      if (j !== -1) { result[i] = 'present'; tArr[j] = null; }
-    }
-  }
-  return result;
-}
-
-// ─── Reveal row ──────────────────────────────────────────────────────────────
-function revealRow(row, result, guess) {
-  for (let c = 0; c < 5; c++) {
-    setTimeout(() => {
-      const t = document.getElementById(`t${row}${c}`);
-      t.dataset.state = result[c];
-      t.classList.add('revealed');
-
-      // update keyboard
-      const lc = guess[c].toLowerCase();
-      const btn = document.querySelector(`.key[data-k="${lc}"]`);
-      if (btn) {
-        const cur = btn.dataset.state;
-        const priority = { correct: 2, present: 1, absent: 0 };
-        if ((priority[result[c]] ?? -1) > (priority[cur] ?? -1)) {
-          btn.dataset.state = result[c];
-        }
-      }
-    }, c * 320);
-  }
-}
-
-// ─── Animations ──────────────────────────────────────────────────────────────
-function shakeRow(row) {
-  const el = document.getElementById(`r${row}`);
-  el.classList.add('shake');
-  setTimeout(() => el.classList.remove('shake'), 500);
-}
-
-function bounceRow(row) {
-  const tiles = document.querySelectorAll(`#r${row} .tile`);
-  tiles.forEach((t, i) => {
-    setTimeout(() => {
-      t.classList.add('win-bounce');
-    }, i * 100);
-  });
-}
-
-// ─── Physical keyboard ───────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.altKey || e.metaKey) return;
-  if (e.key === 'Backspace') handleKey('Backspace');
-  else if (e.key === 'Enter') handleKey('Enter');
-  else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
-});
-
-// ─── Buttons ─────────────────────────────────────────────────────────────────
-document.getElementById('btn-new').addEventListener('click', newGame);
-document.getElementById('btn-start').addEventListener('click', () => {
-  document.getElementById('overlay').classList.add('hidden');
-});
-
-// ─── Boot ────────────────────────────────────────────────────────────────────
-buildKeyboard();
-newGame();
-updateStats();
+  loadStats();
 </script>
 </body>
 </html>

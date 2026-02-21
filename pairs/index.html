@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAIRS — Memory Game</title>
+  <style>
+    :root {
+      --bg: #0f0f10;
+      --surface: #1a1a1b;
+      --text: #ffffff;
+      --sub: #9ca3af;
+      --border: #2d2d2f;
+      --accent: #0d9488;
+      --card-back: #1e2a2a;
+      --card-border: #1f3a39;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100dvh;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 420px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .home-link {
+      color: var(--sub); text-decoration: none;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
+    }
+    .home-link:hover { color: var(--text); }
+
+    h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.18em; color: var(--accent); }
+
+    /* ── Top bar ── */
+    .top-bar {
+      display: flex; justify-content: space-around;
+      width: 100%; max-width: 420px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-box { text-align: center; }
+    .stat-label { font-size: 0.66rem; color: var(--sub); letter-spacing: 0.08em; text-transform: uppercase; }
+    .stat-value { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+    #time-val  { color: var(--text); }
+    #moves-val { color: var(--accent); }
+    #best-val  { color: var(--sub); font-size: 1.1rem; }
+
+    /* ── Grid sizes ── */
+    .size-row {
+      display: flex; gap: 8px;
+      padding: 12px 16px 8px;
+    }
+
+    .size-btn {
+      flex: 1;
+      padding: 7px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      max-width: 100px;
+    }
+    .size-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .size-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+    #btn-new {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--sub);
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.15s;
+    }
+    #btn-new:hover { border-color: var(--accent); color: var(--text); }
+
+    .controls { display: flex; gap: 8px; padding: 0 16px 10px; align-items: center; }
+
+    /* ── Game area ── */
+    #game-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 12px 24px;
+    }
+
+    /* ── Card grid ── */
+    #card-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      width: var(--card-size);
+      height: var(--card-size);
+      cursor: pointer;
+      perspective: 600px;
+      user-select: none;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.35s ease;
+      border-radius: 10px;
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute; inset: 0;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-back {
+      background: var(--card-back);
+      border: 2px solid var(--card-border);
+      font-size: calc(var(--card-size) * 0.45);
+      color: var(--accent);
+    }
+    .card-back::after { content: '?'; }
+
+    .card-front {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      transform: rotateY(180deg);
+      font-size: calc(var(--card-size) * 0.52);
+    }
+
+    .card.matched .card-front {
+      background: rgba(13,148,136,0.15);
+      border-color: var(--accent);
+      animation: matched-pop 0.4s ease;
+    }
+
+    @keyframes matched-pop {
+      0%,100% { transform: rotateY(180deg) scale(1); }
+      50%     { transform: rotateY(180deg) scale(1.12); }
+    }
+
+    .card.wrong .card-inner {
+      animation: card-shake 0.4s ease;
+    }
+    @keyframes card-shake {
+      0%,100% { transform: rotateY(180deg) translateX(0); }
+      25%,75% { transform: rotateY(180deg) translateX(-5px); }
+      50%     { transform: rotateY(180deg) translateX(5px); }
+    }
+
+    /* ── Win overlay ── */
+    #win-banner {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.82);
+      align-items: center; justify-content: center;
+      z-index: 100;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+    #win-banner.show { display: flex; }
+
+    .win-icon  { font-size: 4rem; }
+    .win-title { font-size: 1.6rem; font-weight: 900; letter-spacing: 0.1em; color: var(--accent); }
+    .win-time  { font-size: 2.2rem; font-weight: 900; }
+    .win-moves { font-size: 0.9rem; color: var(--sub); }
+    .win-best  { font-size: 0.9rem; color: var(--sub); }
+    .win-best strong { color: var(--text); }
+
+    .big-btn {
+      padding: 13px 34px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.15s;
+    }
+    .big-btn:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="home-link" href="../">← Home</a>
+  <h1>PAIRS</h1>
+  <div style="width:60px"></div>
+</header>
+
+<div class="top-bar">
+  <div class="stat-box">
+    <div class="stat-label">Time</div>
+    <div class="stat-value" id="time-val">0:00</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Moves</div>
+    <div class="stat-value" id="moves-val">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Best</div>
+    <div class="stat-value" id="best-val">—</div>
+  </div>
+</div>
+
+<div class="size-row">
+  <button class="size-btn active" data-size="4">4×4</button>
+  <button class="size-btn" data-size="5">5×5 ⚠</button>
+  <button class="size-btn" data-size="6">6×6</button>
+</div>
+<div class="controls">
+  <button id="btn-new">New Game</button>
+</div>
+
+<div id="game-area">
+  <div id="card-grid"></div>
+</div>
+
+<div id="win-banner">
+  <div class="win-icon">🎉</div>
+  <div class="win-title">ALL MATCHED!</div>
+  <div class="win-time" id="win-time">—</div>
+  <div class="win-moves" id="win-moves">— moves</div>
+  <div class="win-best" id="win-best"></div>
+  <button class="big-btn" id="win-play-again">Play Again</button>
+</div>
+
+<script>
+// ─── Emoji pool ──────────────────────────────────────────────────────────────
+const EMOJIS = [
+  '🦊','🐼','🦁','🐸','🦋','🌸','⭐','🍕',
+  '🎮','🎯','🚀','🌈','🍦','🎸','🏆','🐙',
+  '🌺','🎺','🐨','🦄','🍩','🎃','🦀','🌙',
+  '🎲','🍓','🦚','🎭','🌊','🎨','🦜','🍭',
+  '🏄','🧩','🌵','🎪','🦋','🐬','🌴','🎠'
+];
+
+// ─── Stats ───────────────────────────────────────────────────────────────────
+let stats = JSON.parse(localStorage.getItem('focus-pairs-stats') || 'null') || { best: null, played: 0 };
+
+function saveStats() {
+  localStorage.setItem('focus-pairs-stats', JSON.stringify(stats));
+  document.getElementById('best-val').textContent = stats.best ? fmtTime(stats.best) : '—';
+}
+saveStats();
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let gridSize    = 4;
+let cards       = [];
+let flipped     = [];
+let matched     = 0;
+let moves       = 0;
+let timerSecs   = 0;
+let timerHandle = null;
+let locked      = false;
+let started     = false;
+
+// ─── Timer ───────────────────────────────────────────────────────────────────
+function fmtTime(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+function startTimer() {
+  if (timerHandle) return;
+  timerHandle = setInterval(() => {
+    timerSecs++;
+    document.getElementById('time-val').textContent = fmtTime(timerSecs);
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerHandle); timerHandle = null; }
+
+// ─── New Game ────────────────────────────────────────────────────────────────
+function newGame() {
+  stopTimer();
+  timerSecs = 0; moves = 0; matched = 0; started = false; locked = false;
+  flipped = [];
+  document.getElementById('time-val').textContent  = '0:00';
+  document.getElementById('moves-val').textContent = '0';
+  document.getElementById('win-banner').classList.remove('show');
+
+  const total = gridSize * gridSize;
+  const pairs = Math.floor(total / 2);
+  const pool  = shuffle([...EMOJIS]).slice(0, pairs);
+  const items = shuffle([...pool, ...pool]);
+
+  // For odd-count grids (5×5=25), add a wildcard in the middle
+  if (total % 2 !== 0) items.push('⚡');
+
+  buildGrid(items);
+}
+
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [b[i],b[j]] = [b[j],b[i]];
+  }
+  return b;
+}
+
+function buildGrid(items) {
+  const grid  = document.getElementById('card-grid');
+  const area  = document.getElementById('game-area');
+  const maxW  = Math.min(area.clientWidth - 24, 420);
+  const gap   = 10;
+  const cardSz = Math.floor((maxW - gap * (gridSize - 1)) / gridSize);
+
+  grid.style.gridTemplateColumns = `repeat(${gridSize}, ${cardSz}px)`;
+  grid.style.setProperty('--card-size', cardSz + 'px');
+  grid.innerHTML = '';
+  cards = [];
+
+  items.forEach((emoji, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.emoji = emoji;
+    card.dataset.idx   = i;
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-back"></div>
+        <div class="card-front">${emoji}</div>
+      </div>`;
+    card.addEventListener('click', () => flipCard(card));
+    grid.appendChild(card);
+    cards.push(card);
+  });
+}
+
+// ─── Flip ────────────────────────────────────────────────────────────────────
+function flipCard(card) {
+  if (locked) return;
+  if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+  // Start timer on first flip
+  if (!started) { started = true; startTimer(); }
+
+  card.classList.add('flipped');
+  flipped.push(card);
+
+  if (flipped.length === 2) {
+    locked = true;
+    moves++;
+    document.getElementById('moves-val').textContent = moves;
+    checkMatch();
+  }
+}
+
+function checkMatch() {
+  const [a, b] = flipped;
+  if (a.dataset.emoji === b.dataset.emoji) {
+    a.classList.add('matched');
+    b.classList.add('matched');
+    matched += 2;
+    flipped = [];
+    locked  = false;
+
+    const total = gridSize * gridSize % 2 === 0 ? gridSize * gridSize : gridSize * gridSize - 1;
+    if (matched >= total) win();
+  } else {
+    setTimeout(() => {
+      a.classList.add('wrong');
+      b.classList.add('wrong');
+      setTimeout(() => {
+        a.classList.remove('flipped', 'wrong');
+        b.classList.remove('flipped', 'wrong');
+        flipped = [];
+        locked  = false;
+      }, 500);
+    }, 500);
+  }
+}
+
+// ─── Win ─────────────────────────────────────────────────────────────────────
+function win() {
+  stopTimer();
+  stats.played++;
+  const isNewBest = !stats.best || timerSecs < stats.best;
+  if (isNewBest) stats.best = timerSecs;
+  saveStats();
+
+  document.getElementById('win-time').textContent  = fmtTime(timerSecs);
+  document.getElementById('win-moves').textContent = `${moves} moves`;
+  document.getElementById('win-best').innerHTML    = isNewBest
+    ? `<strong style="color:#4ade80">New best! 🎉</strong>`
+    : `Best: <strong>${fmtTime(stats.best)}</strong>`;
+
+  setTimeout(() => document.getElementById('win-banner').classList.add('show'), 600);
+}
+
+// ─── Controls ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    gridSize = +btn.dataset.size;
+    newGame();
+  });
+});
+
+document.getElementById('btn-new').addEventListener('click', newGame);
+document.getElementById('win-play-again').addEventListener('click', newGame);
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
