@@ -123,7 +123,7 @@
 
     .lexis   { --accent: #7c3aed; }
     .sudoku  { --accent: #2563eb; }
-    .sprint  { --accent: #ea580c; }
+    .find    { --accent: #0d9488; }
     .spark   { --accent: #f59e0b; }
 
     footer {
@@ -161,11 +161,11 @@
     <span class="play">PLAY</span>
   </a>
 
-  <a class="card sprint" href="sprint/">
-    <div class="icon">⚡</div>
-    <div class="name">SPRINT</div>
-    <div class="desc">Solve as many math problems as you can in 60 seconds</div>
-    <div class="stat" id="st-sprint">Never played</div>
+  <a class="card find" href="sprint/">
+    <div class="icon">🔍</div>
+    <div class="name">FIND</div>
+    <div class="desc">Find all the hidden words in the 10×10 grid</div>
+    <div class="stat" id="st-find">Never played</div>
     <span class="play">PLAY</span>
   </a>
 
@@ -186,17 +186,20 @@
 </footer>
 
 <script>
+  function fmtTime(s) {
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
   function loadStats() {
     const lexis  = JSON.parse(localStorage.getItem('focus-v1-stats')     || 'null');
     const sudoku = JSON.parse(localStorage.getItem('focus-sudoku-stats') || 'null');
-    const sprint = JSON.parse(localStorage.getItem('focus-sprint-stats') || 'null');
-    const pairs  = JSON.parse(localStorage.getItem('focus-pairs-stats')  || 'null');
+    const find   = JSON.parse(localStorage.getItem('focus-find-stats')   || 'null');
+    const spark  = JSON.parse(localStorage.getItem('focus-spark-stats')  || 'null');
 
     if (lexis)  document.getElementById('st-lexis').innerHTML  = `Streak <strong>${lexis.streak}</strong> &nbsp;·&nbsp; Wins <strong>${lexis.won}</strong>`;
     if (sudoku) document.getElementById('st-sudoku').innerHTML = `Solved <strong>${sudoku.solved}</strong> &nbsp;·&nbsp; Best <strong>${sudoku.best || '—'}</strong>`;
-    if (sprint) document.getElementById('st-sprint').innerHTML = `Best <strong>${sprint.best}</strong> correct &nbsp;·&nbsp; Played <strong>${sprint.played}×</strong>`;
-    const spark  = JSON.parse(localStorage.getItem('focus-spark-stats')  || 'null');
-    if (spark)   document.getElementById('st-spark').innerHTML   = `Best <strong>${spark.best}</strong> correct &nbsp;·&nbsp; Played <strong>${spark.played}×</strong>`;
+    if (find)   document.getElementById('st-find').innerHTML   = `Best <strong>${find.best != null ? fmtTime(find.best) : '—'}</strong> &nbsp;·&nbsp; Wins <strong>${find.wins}</strong>`;
+    if (spark)  document.getElementById('st-spark').innerHTML  = `Best <strong>${spark.best}</strong> correct &nbsp;·&nbsp; Played <strong>${spark.played}×</strong>`;
   }
   loadStats();
 </script>
