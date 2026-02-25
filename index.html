@@ -126,6 +126,7 @@
     .find    { --accent: #0d9488; }
     .spark   { --accent: #f59e0b; }
     .gallows { --accent: #dc2626; }
+    .sight   { --accent: #0ea5e9; }
 
     footer {
       margin-top: 40px;
@@ -178,11 +179,19 @@
     <span class="play">PLAY</span>
   </a>
 
-  <a class="card gallows" href="hangman/" style="grid-column: 1 / -1;">
+  <a class="card gallows" href="hangman/">
     <div class="icon">💀</div>
     <div class="name">GALLOWS</div>
     <div class="desc">Guess the hidden word — every wrong letter brings the hangman closer</div>
     <div class="stat" id="st-gallows">Never played</div>
+    <span class="play">PLAY</span>
+  </a>
+
+  <a class="card sight" href="sight/">
+    <div class="icon">⭐</div>
+    <div class="name">SIGHT</div>
+    <div class="desc">Kindergarten &amp; 1st grade sight words — tap the matching word</div>
+    <div class="stat" id="st-sight">Never played</div>
     <span class="play">PLAY</span>
   </a>
 
@@ -204,12 +213,14 @@
     const find    = JSON.parse(localStorage.getItem('focus-find-stats')    || 'null');
     const spark   = JSON.parse(localStorage.getItem('focus-spark-stats')   || 'null');
     const hangman = JSON.parse(localStorage.getItem('focus-hangman-stats') || 'null');
+    const sight   = JSON.parse(localStorage.getItem('focus-sight-stats')   || 'null');
 
     if (lexis)   document.getElementById('st-lexis').innerHTML   = `Streak <strong>${lexis.streak}</strong> &nbsp;·&nbsp; Wins <strong>${lexis.won}</strong>`;
     if (sudoku)  document.getElementById('st-sudoku').innerHTML  = `Solved <strong>${sudoku.solved}</strong> &nbsp;·&nbsp; Best <strong>${sudoku.best || '—'}</strong>`;
     if (find)    document.getElementById('st-find').innerHTML    = `Best <strong>${find.best != null ? fmtTime(find.best) : '—'}</strong> &nbsp;·&nbsp; Wins <strong>${find.wins}</strong>`;
     if (spark)   document.getElementById('st-spark').innerHTML   = `Best <strong>${spark.best}</strong> correct &nbsp;·&nbsp; Played <strong>${spark.played}×</strong>`;
     if (hangman) document.getElementById('st-gallows').innerHTML = `Streak <strong>${hangman.streak}</strong> &nbsp;·&nbsp; Wins <strong>${hangman.won}</strong>`;
+    if (sight)   document.getElementById('st-sight').innerHTML   = `Best <strong>${sight.best}/10</strong> &nbsp;·&nbsp; Stars <strong>${sight.stars}⭐</strong>`;
   }
   loadStats();
 </script>
