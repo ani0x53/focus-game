@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GALLOWS — Hangman</title>
+  <style>
+    :root {
+      --bg: #0f0f10;
+      --surface: #1a1a1b;
+      --text: #ffffff;
+      --sub: #9ca3af;
+      --border: #2d2d2f;
+      --accent: #dc2626;
+      --green: #538d4e;
+      --gray: #3a3a3c;
+      --key-bg: #818384;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100dvh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 500px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .home-link {
+      color: var(--sub);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .home-link:hover { color: var(--text); }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.7rem;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stats span strong {
+      display: block;
+      color: var(--text);
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    #btn-new {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 7px 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    #btn-new:hover { opacity: 0.8; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      pointer-events: none;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Game area ── */
+    #game-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      width: 100%;
+      max-width: 500px;
+      padding: 6px 16px 4px;
+      min-height: 0;
+    }
+
+    /* ── Hangman SVG ── */
+    #hangman-svg {
+      width: min(160px, 40vw);
+      height: min(180px, 45vw);
+      flex-shrink: 0;
+    }
+
+    .h-gallows {
+      stroke: #4b5563;
+      stroke-width: 3;
+      stroke-linecap: round;
+      fill: none;
+    }
+
+    .h-part {
+      stroke: var(--text);
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      fill: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .h-part.visible { opacity: 1; }
+
+    /* ── Wrong letters ── */
+    #wrong-display {
+      font-size: 0.8rem;
+      color: var(--sub);
+      letter-spacing: 0.1em;
+      min-height: 1.1rem;
+      text-align: center;
+    }
+    .w-letter {
+      color: var(--accent);
+      text-decoration: line-through;
+      margin: 0 1px;
+    }
+
+    /* ── Guesses remaining ── */
+    #guesses-left {
+      font-size: 0.68rem;
+      color: var(--sub);
+      letter-spacing: 0.06em;
+      transition: color 0.3s;
+    }
+
+    /* ── Word display ── */
+    #word-display {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 2px 8px;
+    }
+
+    .letter-slot {
+      width: clamp(24px, 6.5vw, 34px);
+      height: clamp(30px, 8vw, 42px);
+      border-bottom: 3px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.95rem, 4vw, 1.35rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .letter-slot.revealed { border-bottom-color: var(--green); color: var(--text); }
+    .letter-slot.win      { color: #4ade80; border-bottom-color: #4ade80; }
+    .letter-slot.lose     { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Keyboard ── */
+    #keyboard {
+      padding: 2px 4px 10px;
+      width: min(460px, 100vw);
+      flex-shrink: 0;
+    }
+
+    .kb-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .key {
+      height: 44px;
+      min-width: 10px;
+      flex: 1;
+      max-width: 38px;
+      border-radius: 4px;
+      background: var(--key-bg);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.78rem;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .key:active { filter: brightness(0.8); }
+    .key:disabled { cursor: default; }
+    .key[data-state="correct"] { background: var(--green); }
+    .key[data-state="wrong"]   { background: var(--gray); opacity: 0.4; }
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header>
+  <a class="home-link" href="../">← Home</a>
+  <div class="stats">
+    <span>Streak<strong id="s-streak">0</strong></span>
+    <span>Wins<strong id="s-wins">0</strong></span>
+  </div>
+  <h1>GALLOWS</h1>
+  <button id="btn-new">New</button>
+</header>
+
+<div id="game-wrap">
+
+  <svg id="hangman-svg" viewBox="0 0 200 210">
+    <!-- Gallows (always visible) -->
+    <line class="h-gallows" x1="15"  y1="200" x2="125" y2="200"/><!-- base -->
+    <line class="h-gallows" x1="50"  y1="200" x2="50"  y2="15"/> <!-- pole -->
+    <line class="h-gallows" x1="50"  y1="15"  x2="140" y2="15"/> <!-- arm  -->
+    <line class="h-gallows" x1="140" y1="15"  x2="140" y2="38"/> <!-- rope -->
+    <!-- Man parts (revealed on each wrong guess) -->
+    <circle class="h-part" id="h-head" cx="140" cy="55" r="17"/>
+    <line   class="h-part" id="h-body" x1="140" y1="72"  x2="140" y2="128"/>
+    <line   class="h-part" id="h-larm" x1="140" y1="92"  x2="113" y2="116"/>
+    <line   class="h-part" id="h-rarm" x1="140" y1="92"  x2="167" y2="116"/>
+    <line   class="h-part" id="h-lleg" x1="140" y1="128" x2="115" y2="165"/>
+    <line   class="h-part" id="h-rleg" x1="140" y1="128" x2="165" y2="165"/>
+  </svg>
+
+  <div id="wrong-display">—</div>
+  <div id="word-display"></div>
+  <div id="guesses-left">6 guesses remaining</div>
+
+</div>
+
+<div id="keyboard">
+  <div class="kb-row" id="kr0"></div>
+  <div class="kb-row" id="kr1"></div>
+  <div class="kb-row" id="kr2"></div>
+</div>
+
+<script>
+const WORDS = [
+  // 5-letter
+  "brave","chain","cloud","dance","eagle","flame","ghost","horse","ivory","joker",
+  "knife","lemon","magic","night","ocean","piano","queen","river","storm","tiger",
+  "uncle","voice","water","yacht","zebra","angel","brain","bread","bride","bring",
+  "chair","chaos","chart","chase","check","chess","chest","chief","child","claim",
+  "class","clean","clear","clock","close","coach","coast","count","court","cover",
+  "crack","crash","cream","crime","cross","crowd","crown","crush","curve","cycle",
+  "death","delay","depth","devil","doubt","draft","drain","drawn","dream","dress",
+  "drift","drink","drive","drown","earth","eight","elite","empty","enemy","enjoy",
+  "event","exact","extra","false","fancy","fatal","fault","feast","fence","fever",
+  "field","fifth","fifty","fight","final","first","fixed","floor","flour","fluid",
+  "focus","force","found","frame","frank","fraud","fresh","front","frost","fruit",
+  "funny","given","glass","gleam","gloom","glory","glove","grace","grade","grain",
+  "grand","grant","grasp","grass","grave","great","greed","green","grief","grind",
+  "groan","group","grown","guess","guide","happy","harsh","heart","heavy","honey",
+  "honor","hotel","human","humor","ideal","inner","judge","juice","jumbo","kneel",
+  "knock","label","lance","laser","laugh","layer","learn","legal","level","light",
+  "local","logic","loose","lower","lucky","lunar","major","manor","maple","march",
+  "match","mayor","medal","mercy","metal","minor","model","money","moral","mouth",
+  "movie","music","nerve","night","noble","noise","north","novel","nurse","offer",
+  "olive","opera","order","outer","paint","panic","paper","party","peace","penny",
+  "phone","photo","piece","pilot","pixel","place","plain","plane","plant","plate",
+  "point","polar","power","press","price","pride","prime","prize","probe","proof",
+  "pulse","punch","query","quest","quick","quiet","quote","radio","raise","rally",
+  "range","rapid","razor","reach","realm","rebel","refer","reign","relax","relay",
+  "rider","rifle","right","rigid","risky","rival","rogue","rough","round","route",
+  "royal","ruler","saint","scale","scene","score","scout","seize","sense","serve",
+  "seven","shade","shake","shame","shape","share","shark","sharp","sheep","shelf",
+  "shell","shift","shine","shirt","shock","shore","short","shout","sight","skill",
+  "skull","slate","sleep","slice","slide","slope","smart","smile","smoke","snake",
+  "solar","solid","solve","sorry","south","spark","speak","spear","spell","spend",
+  "spice","spine","split","spoke","spoon","sport","spray","squad","stack","staff",
+  "stage","stain","stale","stalk","stamp","stand","stare","stark","start","state",
+  "steal","steam","steel","steep","stern","stick","still","sting","stock","stone",
+  "store","storm","story","stout","straw","stray","strip","stuck","study","stuff",
+  "style","sugar","suite","super","surge","swamp","swear","sweet","swift","swing",
+  "sword","table","taste","tease","teeth","tense","theme","thick","thing","think",
+  "third","thorn","three","throw","thumb","tiger","tight","tired","title","toast",
+  "today","token","topic","total","touch","tough","tower","toxic","trade","trail",
+  "train","trait","trash","trend","troop","truce","truck","truly","tumor","ultra",
+  "under","union","unite","until","upper","urban","usual","utter","vague","valid",
+  "valor","vault","venue","verse","vigor","viral","virus","visit","vista","vital",
+  "vivid","vocal","voter","watch","water","weary","weave","wedge","weird","whale",
+  "wheat","wheel","where","which","while","white","whole","world","worry","worse",
+  "worth","would","wound","wrath","wreck","write","wrong","young","youth",
+  // 6-letter
+  "accent","action","animal","answer","around","asleep","attack","autumn","avenue",
+  "beauty","before","behind","belong","better","beyond","borrow","bottle","bottom",
+  "bounce","branch","bridge","bright","broken","bronze","brutal","bubble","budget",
+  "button","candle","castle","cattle","center","chance","change","charge","cherry",
+  "choose","chosen","church","circle","clever","clouds","colony","combat","common",
+  "copper","corner","cotton","couple","cousin","create","crisis","custom","danger",
+  "deadly","debate","decade","decide","deeper","define","degree","desert","design",
+  "detail","differ","dinner","direct","dollar","double","dragon","during","effect",
+  "effort","empire","enable","engage","enough","entire","escape","evolve","expect",
+  "expert","extend","famine","famous","figure","finish","flower","follow","forest",
+  "formal","freeze","frozen","future","garden","garlic","gather","gentle","golden",
+  "gossip","govern","gravel","groove","growth","grudge","hammer","happen","harbor",
+  "hatred","heaven","helmet","hidden","hollow","honest","horror","humble","hunger",
+  "impact","infant","inside","intend","invent","island","jester","jungle","knight",
+  "launch","leader","lessen","lesson","letter","liquid","listen","little","locket",
+  "longer","lovely","maiden","manage","marble","marker","matter","meadow","mental",
+  "mirror","modern","monkey","mortal","mother","murder","mutual","narrow","nearly",
+  "needle","notice","orange","origin","parent","patrol","pebble","people","pepper",
+  "person","pillow","pirate","planet","please","pledge","plenty","pocket","poison",
+  "police","portal","potato","prison","proper","purple","puzzle","rabbit","random",
+  "rattle","reason","record","rescue","rocket","saddle","safely","sample","scarce",
+  "secret","server","settle","shadow","shovel","signal","silver","simple","single",
+  "sister","sleeve","slight","slowly","smooth","soften","source","speech","spider",
+  "spiral","sponge","spring","square","stable","statue","steady","strict","stroke",
+  "strong","sudden","summer","sunset","switch","symbol","temple","tender","tether",
+  "threat","throne","timber","tomato","tongue","travel","tremor","triple","trophy",
+  "tunnel","turkey","turtle","unique","useful","valley","vanish","velvet","versus",
+  "victim","vision","wander","weekly","window","winter","wisdom","wonder","yellow",
+  // 7-letter
+  "abandon","absence","ancient","another","athlete","attract","balance","battery",
+  "believe","beneath","between","blossom","captain","careful","ceiling","century",
+  "chapter","charity","chicken","citizen","classic","comfort","command","company",
+  "complex","concern","connect","council","courage","curtain","deliver","destiny",
+  "display","distant","dolphin","drawing","element","embrace","emotion","endless",
+  "evening","example","explain","explore","failure","fantasy","fashion","feature",
+  "feeling","foreign","forever","fortune","forward","fragile","freedom","furious",
+  "gateway","genuine","glimpse","gravity","harmony","history","hostile","imagine",
+  "improve","include","involve","kitchen","lantern","leather","library","machine",
+  "manager","massive","measure","mention","miracle","mission","monster","morning",
+  "mystery","nothing","officer","opinion","outside","package","painter","partner",
+  "pattern","perhaps","picture","pilgrim","plunder","popular","poverty","present",
+  "problem","process","program","protect","purpose","realize","receive","respect",
+  "restore","reunion","revenge","reverse","running","science","servant","silence",
+  "similar","society","soldier","somehow","someone","species","stories","stretch",
+  "subject","success","support","survive","swallow","swimmer","teacher","tension",
+  "thunder","tonight","trouble","uniform","unknown","unusual","warrior","weather",
+  "welcome","western","whisper","without",
+  // 8-letter
+  "absolute","accident","accurate","activity","alliance","argument","birthday",
+  "blessing","boundary","calendar","capacity","champion","chemical","children",
+  "clothing","complete","computer","constant","creation","criminal","currency",
+  "darkness","daughter","decision","describe","director","disaster","discover",
+  "document","dramatic","everyone","evidence","exercise","external","favorite",
+  "function","grateful","guardian","guidance","handsome","hospital","humanity",
+  "increase","industry","innocent","interest","judgment","language","laughter",
+  "learning","lifetime","location","magazine","marriage","medicine","midnight",
+  "military","mountain","movement","national","observer","official","original",
+  "painting","paradise","peaceful","physical","pleasant","powerful","practice",
+  "pressure","princess","prisoner","probably","progress","property","question",
+  "remember","required","response","security","sequence","shoulder","skeleton",
+  "sleeping","software","solution","standard","stranger","strategy","strength",
+  "struggle","suddenly","superior","surprise","survival","template","thousand",
+  "together","tomorrow","treasure","ultimate","unlikely","vacation","valuable",
+  "violence","wanderer","whatever","wildfire","withdraw","workshop"
+].filter(w => w.length >= 5 && w.length <= 8);
+
+const PARTS = ['h-head','h-body','h-larm','h-rarm','h-lleg','h-rleg'];
+const MAX_WRONG = 6;
+
+let target = '', guessed = new Set(), wrongCount = 0, over = false;
+let stats = JSON.parse(localStorage.getItem('focus-hangman-stats') || 'null')
+          || { played: 0, won: 0, streak: 0, best: 0 };
+
+const toastEl   = document.getElementById('toast');
+const wordWrap  = document.getElementById('word-display');
+const wrongDisp = document.getElementById('wrong-display');
+const guessLeft = document.getElementById('guesses-left');
+let toastTimer  = null;
+
+function toast(msg, ms = 1800) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+// ── Keyboard ─────────────────────────────────────────────────────────────────
+const KB_ROWS = [
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l'],
+  ['z','x','c','v','b','n','m']
+];
+
+function buildKeyboard() {
+  KB_ROWS.forEach((row, i) => {
+    const el = document.getElementById(`kr${i}`);
+    el.innerHTML = '';
+    row.forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'key';
+      btn.textContent = k.toUpperCase();
+      btn.dataset.k = k;
+      btn.addEventListener('click', () => handleGuess(k));
+      el.appendChild(btn);
+    });
+  });
+}
+
+// ── Hangman drawing ───────────────────────────────────────────────────────────
+function resetHangman() {
+  PARTS.forEach(id => document.getElementById(id).classList.remove('visible'));
+}
+
+function showPart(idx) {
+  if (idx < PARTS.length) document.getElementById(PARTS[idx]).classList.add('visible');
+}
+
+// ── Word display ──────────────────────────────────────────────────────────────
+function renderWord(state = 'normal') {
+  wordWrap.innerHTML = '';
+  for (const ch of target) {
+    const slot = document.createElement('div');
+    const revealed = guessed.has(ch);
+    slot.className = 'letter-slot'
+      + (revealed ? ' revealed' : '')
+      + (state === 'win'  ? ' win'  : '')
+      + (state === 'lose' && !revealed ? ' lose' : '');
+    slot.textContent = (revealed || state === 'lose') ? ch : '';
+    wordWrap.appendChild(slot);
+  }
+}
+
+// ── Wrong letters & guesses remaining ────────────────────────────────────────
+function updateWrongDisplay() {
+  const wrongs = [...guessed].filter(c => !target.includes(c)).sort();
+  wrongDisp.innerHTML = wrongs.length
+    ? 'Wrong: ' + wrongs.map(c => `<span class="w-letter">${c}</span>`).join(' ')
+    : '—';
+
+  const left = MAX_WRONG - wrongCount;
+  guessLeft.textContent = left === 1
+    ? '⚠️ Last guess!'
+    : left === 0
+      ? 'Game over!'
+      : `${wrongCount}/${MAX_WRONG} wrong`;
+  guessLeft.style.color = left <= 2 ? 'var(--accent)' : 'var(--sub)';
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function saveStats() {
+  localStorage.setItem('focus-hangman-stats', JSON.stringify(stats));
+}
+
+function updateStatsUI() {
+  document.getElementById('s-streak').textContent = stats.streak;
+  document.getElementById('s-wins').textContent   = stats.won;
+}
+
+// ── New game ──────────────────────────────────────────────────────────────────
+function newGame() {
+  target     = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
+  guessed    = new Set();
+  wrongCount = 0;
+  over       = false;
+
+  resetHangman();
+  buildKeyboard();
+  renderWord();
+  updateWrongDisplay();
+  updateStatsUI();
+}
+
+// ── Handle a letter guess ─────────────────────────────────────────────────────
+function handleGuess(letter) {
+  if (over) return;
+  const L = letter.toUpperCase();
+  if (guessed.has(L)) return;
+  guessed.add(L);
+
+  const btn = document.querySelector(`.key[data-k="${letter.toLowerCase()}"]`);
+
+  if (target.includes(L)) {
+    if (btn) btn.dataset.state = 'correct';
+    renderWord();
+
+    const won = [...target].every(c => guessed.has(c));
+    if (won) {
+      over = true;
+      stats.played++; stats.won++; stats.streak++;
+      stats.best = Math.max(stats.best, stats.streak);
+      saveStats(); updateStatsUI();
+      setTimeout(() => {
+        renderWord('win');
+        const praise = ['Brilliant!','Nailed it!','Nice one!','Got it!','Sharp!'];
+        toast(praise[Math.floor(Math.random() * praise.length)] + ' 🎉', 2200);
+      }, 80);
+    }
+  } else {
+    if (btn) { btn.dataset.state = 'wrong'; btn.disabled = true; }
+    wrongCount++;
+    showPart(wrongCount - 1);
+    renderWord();
+    updateWrongDisplay();
+
+    if (wrongCount >= MAX_WRONG) {
+      over = true;
+      stats.played++; stats.streak = 0;
+      saveStats(); updateStatsUI();
+      setTimeout(() => {
+        renderWord('lose');
+        guessLeft.textContent = 'Game over!';
+        guessLeft.style.color = 'var(--accent)';
+        toast(`The word was ${target}`, 3200);
+      }, 300);
+    }
+  }
+
+  updateWrongDisplay();
+}
+
+// ── Physical keyboard ─────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (/^[a-zA-Z]$/.test(e.key)) handleGuess(e.key.toLowerCase());
+});
+
+document.getElementById('btn-new').addEventListener('click', newGame);
+
+buildKeyboard();
+newGame();
+</script>
+</body>
+</html>
